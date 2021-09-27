@@ -23,21 +23,21 @@
     },
     "homepage": "https://github.com/helikon-tech/substrate-payout-service#readme",
     "dependencies": {
-        "@polkadot/api": "5.3.2",
-        "@types/node": "^16.4.3",
-        "@types/node-cron": "^2.0.4",
+        "@polkadot/api": "6.1.1",
+        "@types/node": "16.10.1",
+        "@types/node-cron": "2.0.4",
         "cross-env": "^7.0.3",
-        "dotenv": "^10.0.0",
+        "dotenv": "10.0.0",
         "node-cron": "^3.0.0",
-        "rimraf": "^3.0.2",
-        "typescript": "^4.3.5",
-        "winston": "^3.3.3",
-        "yargs": "^17.0.1"
+        "rimraf": "3.0.2",
+        "typescript": "4.4.3",
+        "winston": "3.3.3",
+        "yargs": "17.2.1"
     },
     "devDependencies": {
-        "@substrate/dev": "^0.5.4",
-        "@types/yargs": "^17.0.2",
-        "concurrently": "^6.2.0",
-        "nodemon": "^2.0.9"
+        "@substrate/dev": "0.5.5",
+        "@types/yargs": "17.0.3",
+        "concurrently": "6.2.1",
+        "nodemon": "2.0.13"
     }
 }
