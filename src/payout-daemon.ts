@@ -5,18 +5,18 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import cron from 'node-cron';
 require('dotenv').config();
 
-import { isValidSeed, ServiceArgs, collectPayouts } from './substrate';
+import { isValidSeed, ServiceArgs, claimPayout } from './substrate';
 import { logger } from './logging';
 
 let cronJob: cron.ScheduledTask;
 
-export async function startPayoutDaemon() {
-    logger.info('Starting the substrate payout daemon.');
+export async function startPayoutDaemon(isDaemon: boolean, listOnly: boolean) {
+    logger.info('Starting...');
     if (process.env.STASHES == null) {
         logger.error('No stashes defined in the .env file. Please view .env.sample file for a valid example.');
         return;
     }
-    const stashes = process.env.STASHES!!.split(",");
+    const stashes = [...new Set(process.env.STASHES!!.split(","))];
     if (process.env.MNEMONIC == null) {
         logger.error('Payout account mnemonic is not defined in the .env file. Please view .env.sample file for a valid example.');
         return;
@@ -30,17 +30,35 @@ export async function startPayoutDaemon() {
         return;
     }
     const payoutCheckPeriodMins = +process.env.PAYOUT_CHECK_PERIOD_MINS!!;
-    if (payoutCheckPeriodMins < 1 || payoutCheckPeriodMins > 60) {
-        logger.error('Invalid payout check period value in the .env file. Please view .env.sample file for a valid example.');
+    if (payoutCheckPeriodMins < 1) {
+        logger.error(
+            `Invalid payout check period value in the .env file: ${payoutCheckPeriodMins}.`
+            + ` It can be 1 or more minutes.`
+        );
         return;
     }
-    cronJob = cron.schedule(`*/${payoutCheckPeriodMins} * * * *`, async () => {
-        await makePayouts(
+    if (listOnly) {
+        logger.info('List mode.');
+    }
+    if (isDaemon) {
+        logger.info(`Daemon mode. Will run every ${payoutCheckPeriodMins} minutes.`);
+        cronJob = cron.schedule(`*/${payoutCheckPeriodMins} * * * *`, async () => {
+            await run(
+                stashes,
+                process.env.MNEMONIC!! as string,
+                +process.env.ERA_DEPTH!!,
+                listOnly
+            );
+        });
+    } else {
+        logger.info(`Single-run mode.`);
+        await run(
             stashes,
             process.env.MNEMONIC!! as string,
-            +process.env.ERA_DEPTH!!
+            +process.env.ERA_DEPTH!!,
+            listOnly
         );
-    });
+    }
 }
 
 export async function stopPayoutDaemon() {
@@ -50,10 +68,11 @@ export async function stopPayoutDaemon() {
     }
 }
 
-async function makePayouts(
-    stashes: string[],
-    mnemonic: string,
-    eraDepth: number
+async function run(
+    stashAddresses: string[],
+    seedPhrase: string,
+    eraDepth: number,
+    listOnly: boolean
 ) {
     logger.info('Get API connection.');
     const provider = new WsProvider(process.env.SUBSTRATE_RPC_URL as string);
@@ -61,17 +80,27 @@ async function makePayouts(
         provider,
     });
     await api.isReady;
-    logger.info('API connection is ready.');
-    logger.info('Begin payout check.');
-    const args = {
-        api: api,
-        suri: mnemonic,
-        stashes: stashes,
-        eraDepth: eraDepth
-    } as ServiceArgs;
-    await collectPayouts(args);
+    logger.info('API connection is ready, begin payout check.');
+    let currentEraIndex = (await api.query.staking.currentEra()).unwrap().toNumber();
+    let unclaimedPayoutCount = 0;
+    for (let stashAddress of stashAddresses) {
+        unclaimedPayoutCount = 0;
+        for (let eraIndex = currentEraIndex - eraDepth; eraIndex < currentEraIndex; eraIndex++) {
+            const args = {
+                api,
+                seedPhrase,
+                stashAddress,
+                eraIndex,
+                listOnly
+            } as ServiceArgs;   
+            if (await claimPayout(args)) {
+                unclaimedPayoutCount++;
+            }
+        }
+        logger.info(`${unclaimedPayoutCount} unclaimed payout(s) for ${stashAddress}.`);
+    }
     logger.info('Close API connection.');
     await api.disconnect();
     logger.info('End payout check.');
-    logger.info('------------------------------------------------------------------------------------------------');
+    logger.info('-----------------------------------------------------------------------------------------------------');
 }

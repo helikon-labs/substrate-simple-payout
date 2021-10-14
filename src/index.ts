@@ -2,6 +2,12 @@
  * Application entry.
  */
 import { startPayoutDaemon, stopPayoutDaemon } from './payout-daemon';
+import yargs from 'yargs/yargs';
+
+const argv = yargs(process.argv.slice(2)).options({
+    daemon: { type: 'boolean', default: false },
+    list: { type: 'boolean', default: false }
+}).parseSync();
 
 const stop = async () => {
     await stopPayoutDaemon();
@@ -11,4 +17,4 @@ const stop = async () => {
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 
-startPayoutDaemon();
+startPayoutDaemon(argv.daemon, argv.list);
