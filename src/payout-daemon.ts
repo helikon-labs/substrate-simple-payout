@@ -2,6 +2,7 @@
  * Contains the daemon logic.
  */
 import { ApiPromise, WsProvider } from '@polkadot/api';
+import '@polkadot/api-augment';
 import cron from 'node-cron';
 require('dotenv').config();
 

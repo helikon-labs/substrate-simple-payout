@@ -7,6 +7,7 @@ import { cryptoWaitReady } from '@polkadot/util-crypto';
 import { keyExtractSuri, mnemonicValidate } from '@polkadot/util-crypto';
 import { isHex } from '@polkadot/util';
 import { logger } from './logging';
+import '@polkadot/api-augment';
 
 const SEED_LENGTHS = [12, 15, 18, 21, 24];
 
