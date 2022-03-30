@@ -61,7 +61,10 @@ export async function claimPayout({
     cryptoWaitReady();
     const keyring = new Keyring({ type: 'sr25519' });
     const keypair = keyring.addFromUri(seedPhrase);
-    const hash = await api.tx.staking.payoutStakers(stashAddress, eraIndex).signAndSend(keypair);
+    const hash = await api.tx.staking.payoutStakers(
+        stashAddress,
+        eraIndex
+    ).signAndSend(keypair, { nonce: -1 });
     logger.info(`Payout transaction submitted with hash ${hash}.`);
     return true;
 }
