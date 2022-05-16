@@ -33,7 +33,7 @@
         "rimraf": "3.0.2",
         "typescript": "4.6.4",
         "winston": "3.7.2",
-        "yargs": "17.5.0"
+        "yargs": "17.5.1"
     },
     "devDependencies": {
         "@substrate/dev": "0.6.1",
