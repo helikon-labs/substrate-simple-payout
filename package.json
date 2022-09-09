@@ -25,7 +25,7 @@
     "dependencies": {
         "@polkadot/api": "9.3.2",
         "@types/node": "18.7.16",
-        "@types/node-cron": "3.0.3",
+        "@types/node-cron": "3.0.4",
         "cross-env": "^7.0.3",
         "dotenv": "16.0.2",
         "minimist": ">=1.2.6",
