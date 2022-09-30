@@ -27,7 +27,7 @@
         "@types/node": "18.7.23",
         "@types/node-cron": "3.0.4",
         "cross-env": "^7.0.3",
-        "dotenv": "16.0.2",
+        "dotenv": "16.0.3",
         "minimist": ">=1.2.6",
         "node-cron": "^3.0.2",
         "rimraf": "3.0.2",
