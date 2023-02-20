@@ -24,7 +24,7 @@
     "homepage": "https://github.com/helikon-tech/substrate-payout-service#readme",
     "dependencies": {
         "@polkadot/api": "9.13.5",
-        "@types/node": "18.11.18",
+        "@types/node": "18.14.0",
         "@types/node-cron": "3.0.7",
         "cross-env": "^7.0.3",
         "dotenv": "16.0.3",
