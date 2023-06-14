@@ -39,7 +39,7 @@
     "devDependencies": {
         "@substrate/dev": "0.7.0",
         "@types/yargs": "17.0.24",
-        "concurrently": "8.0.1",
+        "concurrently": "8.2.0",
         "nodemon": "2.0.22"
     }
 }
