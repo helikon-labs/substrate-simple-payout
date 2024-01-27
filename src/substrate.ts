@@ -26,7 +26,9 @@ async function getControllerAddress(api: ApiPromise, stashAddress: string) : Pro
 async function payoutClaimedForAddressForEra(api: ApiPromise, stashAddress: string, eraIndex: number): Promise<boolean> {
     const controllerAddress = await getControllerAddress(api, stashAddress);
     const controllerLedger = (await api.query.staking.ledger(controllerAddress)).unwrap();
+    // @ts-ignore
     const claimedEras = controllerLedger.claimedRewards.map(
+        // @ts-ignore
         x => x.toNumber()
     );
     if (claimedEras.includes(eraIndex)) {
