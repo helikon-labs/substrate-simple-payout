@@ -33,7 +33,7 @@
         "rimraf": "5.0.5",
         "typescript": "5.3.3",
         "uuid": "9.0.1",
-        "winston": "3.11.0",
+        "winston": "3.13.0",
         "yargs": "17.7.2"
     },
     "devDependencies": {
