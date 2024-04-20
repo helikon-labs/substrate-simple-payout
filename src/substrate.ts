@@ -19,24 +19,14 @@ export interface ServiceArgs {
     listOnly: boolean;
 }
 
-async function getControllerAddress(api: ApiPromise, stashAddress: string) : Promise<string> {
-    return (await api.query.staking.bonded(stashAddress)).toString();
-}
-
 async function payoutClaimedForAddressForEra(api: ApiPromise, stashAddress: string, eraIndex: number): Promise<boolean> {
-    const controllerAddress = await getControllerAddress(api, stashAddress);
-    const controllerLedger = (await api.query.staking.ledger(controllerAddress)).unwrap();
-    // @ts-ignore
-    const claimedEras = controllerLedger.claimedRewards.map(
-        // @ts-ignore
-        x => x.toNumber()
-    );
-    if (claimedEras.includes(eraIndex)) {
+    const claimed = (await api.query.staking.claimedRewards(eraIndex, stashAddress)).length > 0;
+    if (claimed) {
         // payout already issued
         return true;
     }
-    const exposureForEra = await api.query.staking.erasStakers(eraIndex, stashAddress);
-    if (!exposureForEra.total.toBn().gtn(0)) {
+    const exposureForEra = await api.query.staking.erasStakersOverview(eraIndex, stashAddress);
+    if (exposureForEra.isNone) {
         // was not in the active set
         return true;
     }
