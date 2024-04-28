@@ -82,11 +82,11 @@ async function run(
     });
     await api.isReady;
     logger.info('API connection is ready, begin payout check.');
-    let currentEraIndex = (await api.query.staking.currentEra()).unwrap().toNumber();
+    let activeEraIndex = (await api.query.staking.activeEra()).unwrap().index.toNumber();
     let unclaimedPayoutCount = 0;
     for (let stashAddress of stashAddresses) {
         unclaimedPayoutCount = 0;
-        for (let eraIndex = currentEraIndex - eraDepth; eraIndex < currentEraIndex; eraIndex++) {
+        for (let eraIndex = activeEraIndex - eraDepth; eraIndex < activeEraIndex; eraIndex++) {
             const args = {
                 api,
                 seedPhrase,
@@ -98,7 +98,9 @@ async function run(
                 unclaimedPayoutCount++;
             }
         }
-        logger.info(`${unclaimedPayoutCount} unclaimed payout(s) for ${stashAddress}.`);
+        if (!listOnly) {
+            logger.info(`Claimed ${unclaimedPayoutCount} eras for ${stashAddress}.`);
+        }
     }
     logger.info('Close API connection.');
     await api.disconnect();

@@ -1,6 +1,6 @@
 /**
  * Contains substrate functions.
- * Functions copied (or modified) from https://github.com/canontech/staking-payouts.
+ * Functions copied or modified from https://github.com/canontech/staking-payouts.
  */
 import { ApiPromise, Keyring } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
@@ -19,18 +19,27 @@ export interface ServiceArgs {
     listOnly: boolean;
 }
 
-async function payoutClaimedForAddressForEra(api: ApiPromise, stashAddress: string, eraIndex: number): Promise<boolean> {
-    const claimed = (await api.query.staking.claimedRewards(eraIndex, stashAddress)).length > 0;
-    if (claimed) {
-        // payout already issued
-        return true;
-    }
-    const exposureForEra = await api.query.staking.erasStakersOverview(eraIndex, stashAddress);
-    if (exposureForEra.isNone) {
+async function getPayoutPagesToClaimForAddressForEra(
+    api: ApiPromise,
+    stashAddress: string,
+    eraIndex: number,
+): Promise<Array<number>> {
+    const overview = await api.query.staking.erasStakersOverview(eraIndex, stashAddress);
+    if (overview.isNone) {
         // was not in the active set
-        return true;
+        return [];
     }
-    return false;
+    let pageCount = overview.unwrap().pageCount.toNumber();
+    let pages = [...Array(pageCount).keys()];
+    const claimedPages = (await api.query.staking.claimedRewards(eraIndex, stashAddress)).map(function(value) { return value.toNumber(); });
+    let pagesToClaim = [];
+    for (let i = 0; i < pages.length; i++) {
+        let pageIndex = pages[i];
+        if (claimedPages.indexOf(pageIndex) < 0) {
+            pagesToClaim.push(pageIndex);
+        }
+    }
+    return pagesToClaim;
 }
 
 export async function claimPayout({
@@ -40,24 +49,27 @@ export async function claimPayout({
     eraIndex,
     listOnly,
 }: ServiceArgs): Promise<boolean> {
-    if (await payoutClaimedForAddressForEra(api, stashAddress, eraIndex)) {
-        if (!listOnly) {
-            logger.info(`No payout to claim for ${stashAddress} in era ${eraIndex}`);
-        }
+    const pagesToClaim = await getPayoutPagesToClaimForAddressForEra(api, stashAddress, eraIndex);
+    if (pagesToClaim.length == 0) {
+        logger.info(`No payout to claim for ${stashAddress} in era ${eraIndex}`);
         return false;
-    } else if (listOnly) {
-        logger.info(`${stashAddress} hasn't claimed payouts for era ${eraIndex}.`);
+    }
+    if (listOnly) {
+        logger.info(`${stashAddress} has ${pagesToClaim.length} pages of unclaimed payouts for era ${eraIndex}.`);
         return true;
     }
-    logger.info(`Will claim payout for ${stashAddress} for era ${eraIndex}.`);
+    logger.info(`Will claim ${pagesToClaim.length} pages of payout for ${stashAddress} for era ${eraIndex}.`);
     cryptoWaitReady();
     const keyring = new Keyring({ type: 'sr25519' });
     const keypair = keyring.addFromUri(seedPhrase);
-    const hash = await api.tx.staking.payoutStakers(
-        stashAddress,
-        eraIndex
-    ).signAndSend(keypair, { nonce: -1 });
-    logger.info(`Payout transaction submitted with hash ${hash}.`);
+    for (let pageIndex of pagesToClaim) {
+        const hash = await api.tx.staking.payoutStakersByPage(
+            stashAddress,
+            eraIndex,
+            pageIndex,
+        ).signAndSend(keypair, { nonce: -1 });
+        logger.info(`Payout transaction page ${pageIndex + 1} of ${pagesToClaim.length} submitted with hash ${hash}.`);
+    }
     return true;
 }
 
