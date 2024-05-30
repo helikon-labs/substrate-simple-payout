@@ -40,6 +40,6 @@
         "@substrate/dev": "0.7.1",
         "@types/yargs": "17.0.32",
         "concurrently": "8.2.2",
-        "nodemon": "3.1.0"
+        "nodemon": "3.1.2"
     }
 }
