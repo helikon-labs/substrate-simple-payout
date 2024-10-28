@@ -31,7 +31,11 @@ async function getPayoutPagesToClaimForAddressForEra(
     }
     let pageCount = overview.unwrap().pageCount.toNumber();
     let pages = [...Array(pageCount).keys()];
-    const claimedPages = (await api.query.staking.claimedRewards(eraIndex, stashAddress)).map(function(value) { return value.toNumber(); });
+    const claimedPages = (await api.query.staking.claimedRewards(eraIndex, stashAddress)).map(
+        function (value) {
+            return value.toNumber();
+        },
+    );
     let pagesToClaim = [];
     for (let i = 0; i < pages.length; i++) {
         let pageIndex = pages[i];
@@ -55,20 +59,24 @@ export async function claimPayout({
         return false;
     }
     if (listOnly) {
-        logger.info(`${stashAddress} has ${pagesToClaim.length} pages of unclaimed payouts for era ${eraIndex}.`);
+        logger.info(
+            `${stashAddress} has ${pagesToClaim.length} pages of unclaimed payouts for era ${eraIndex}.`,
+        );
         return true;
     }
-    logger.info(`Will claim ${pagesToClaim.length} pages of payout for ${stashAddress} for era ${eraIndex}.`);
+    logger.info(
+        `Will claim ${pagesToClaim.length} pages of payout for ${stashAddress} for era ${eraIndex}.`,
+    );
     cryptoWaitReady();
     const keyring = new Keyring({ type: 'sr25519' });
     const keypair = keyring.addFromUri(seedPhrase);
     for (let pageIndex of pagesToClaim) {
-        const hash = await api.tx.staking.payoutStakersByPage(
-            stashAddress,
-            eraIndex,
-            pageIndex,
-        ).signAndSend(keypair, { nonce: -1 });
-        logger.info(`Payout transaction page ${pageIndex + 1} of ${pagesToClaim.length} submitted with hash ${hash}.`);
+        const hash = await api.tx.staking
+            .payoutStakersByPage(stashAddress, eraIndex, pageIndex)
+            .signAndSend(keypair, { nonce: -1 });
+        logger.info(
+            `Payout transaction page ${pageIndex + 1} of ${pagesToClaim.length} submitted with hash ${hash}.`,
+        );
     }
     return true;
 }

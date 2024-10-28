@@ -14,12 +14,16 @@ let cronJob: cron.ScheduledTask;
 export async function startPayoutDaemon(isDaemon: boolean, listOnly: boolean) {
     logger.info('Starting...');
     if (process.env.STASHES == null) {
-        logger.error('No stashes defined in the .env file. Please view .env.sample file for a valid example.');
+        logger.error(
+            'No stashes defined in the .env file. Please view .env.sample file for a valid example.',
+        );
         return;
     }
-    const stashes = [...new Set(process.env.STASHES!!.split(","))];
+    const stashes = [...new Set(process.env.STASHES!!.split(','))];
     if (process.env.MNEMONIC == null) {
-        logger.error('Payout account mnemonic is not defined in the .env file. Please view .env.sample file for a valid example.');
+        logger.error(
+            'Payout account mnemonic is not defined in the .env file. Please view .env.sample file for a valid example.',
+        );
         return;
     }
     if (!isValidSeed(process.env.MNEMONIC!!)) {
@@ -27,14 +31,16 @@ export async function startPayoutDaemon(isDaemon: boolean, listOnly: boolean) {
         return;
     }
     if (process.env.PAYOUT_CHECK_PERIOD_MINS == null) {
-        logger.error('Payout check period is not defined in the .env file. Please view .env.sample file for a valid example.');
+        logger.error(
+            'Payout check period is not defined in the .env file. Please view .env.sample file for a valid example.',
+        );
         return;
     }
     const payoutCheckPeriodMins = +process.env.PAYOUT_CHECK_PERIOD_MINS!!;
     if (payoutCheckPeriodMins < 1) {
         logger.error(
-            `Invalid payout check period value in the .env file: ${payoutCheckPeriodMins}.`
-            + ` It can be 1 or more minutes.`
+            `Invalid payout check period value in the .env file: ${payoutCheckPeriodMins}.` +
+                ` It can be 1 or more minutes.`,
         );
         return;
     }
@@ -48,17 +54,12 @@ export async function startPayoutDaemon(isDaemon: boolean, listOnly: boolean) {
                 stashes,
                 process.env.MNEMONIC!! as string,
                 +process.env.ERA_DEPTH!!,
-                listOnly
+                listOnly,
             );
         });
     } else {
         logger.info(`Single-run mode.`);
-        await run(
-            stashes,
-            process.env.MNEMONIC!! as string,
-            +process.env.ERA_DEPTH!!,
-            listOnly
-        );
+        await run(stashes, process.env.MNEMONIC!! as string, +process.env.ERA_DEPTH!!, listOnly);
     }
 }
 
@@ -73,7 +74,7 @@ async function run(
     stashAddresses: string[],
     seedPhrase: string,
     eraDepth: number,
-    listOnly: boolean
+    listOnly: boolean,
 ) {
     logger.info('Get API connection.');
     const provider = new WsProvider(process.env.SUBSTRATE_RPC_URL as string);
@@ -92,8 +93,8 @@ async function run(
                 seedPhrase,
                 stashAddress,
                 eraIndex,
-                listOnly
-            } as ServiceArgs;   
+                listOnly,
+            } as ServiceArgs;
             if (await claimPayout(args)) {
                 unclaimedPayoutCount++;
             }
@@ -105,5 +106,7 @@ async function run(
     logger.info('Close API connection.');
     await api.disconnect();
     logger.info('End payout check.');
-    logger.info('-----------------------------------------------------------------------------------------------------');
+    logger.info(
+        '-----------------------------------------------------------------------------------------------------',
+    );
 }
