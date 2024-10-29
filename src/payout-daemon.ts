@@ -60,6 +60,7 @@ export async function startPayoutDaemon(isDaemon: boolean, listOnly: boolean) {
     } else {
         logger.info(`Single-run mode.`);
         await run(stashes, process.env.MNEMONIC!! as string, +process.env.ERA_DEPTH!!, listOnly);
+        logger.info('Single-run mode completed.');
     }
 }
 
