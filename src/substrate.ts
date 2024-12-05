@@ -8,13 +8,15 @@ import { keyExtractSuri, mnemonicValidate } from '@polkadot/util-crypto';
 import { isHex } from '@polkadot/util';
 import { logger } from './logging';
 import '@polkadot/api-augment';
+import { KeyringPair } from '@polkadot/keyring/types';
 
 const SEED_LENGTHS = [12, 15, 18, 21, 24];
 
 export interface ServiceArgs {
     api: ApiPromise;
-    seedPhrase: string;
+    keypair: KeyringPair,
     stashAddress: string;
+    nonce: bigint;
     eraIndex: number;
     listOnly: boolean;
 }
@@ -48,37 +50,38 @@ async function getPayoutPagesToClaimForAddressForEra(
 
 export async function claimPayout({
     api,
-    seedPhrase,
+    keypair,
     stashAddress,
+    nonce,
     eraIndex,
     listOnly,
-}: ServiceArgs): Promise<boolean> {
+}: ServiceArgs): Promise<bigint | undefined> {
     const pagesToClaim = await getPayoutPagesToClaimForAddressForEra(api, stashAddress, eraIndex);
     if (pagesToClaim.length == 0) {
         logger.info(`No payout to claim for ${stashAddress} in era ${eraIndex}`);
-        return false;
+        return undefined;
     }
     if (listOnly) {
         logger.info(
             `${stashAddress} has ${pagesToClaim.length} pages of unclaimed payouts for era ${eraIndex}.`,
         );
-        return true;
+        return undefined;
     }
     logger.info(
         `Will claim ${pagesToClaim.length} pages of payout for ${stashAddress} for era ${eraIndex}.`,
     );
     cryptoWaitReady();
-    const keyring = new Keyring({ type: 'sr25519' });
-    const keypair = keyring.addFromUri(seedPhrase);
+    
     for (let pageIndex of pagesToClaim) {
         const hash = await api.tx.staking
             .payoutStakersByPage(stashAddress, eraIndex, pageIndex)
-            .signAndSend(keypair, { nonce: -1 });
+            .signAndSend(keypair, { nonce: nonce });
         logger.info(
             `Payout transaction page ${pageIndex + 1} of ${pagesToClaim.length} submitted with hash ${hash}.`,
         );
+        nonce += BigInt(1);
     }
-    return true;
+    return nonce;
 }
 
 export function isValidSeed(suri: string): boolean {

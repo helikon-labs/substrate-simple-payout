@@ -1,7 +1,7 @@
 /**
  * Contains the daemon logic.
  */
-import { ApiPromise, WsProvider } from '@polkadot/api';
+import { ApiPromise, Keyring, WsProvider } from '@polkadot/api';
 import '@polkadot/api-augment';
 import cron from 'node-cron';
 require('dotenv').config();
@@ -84,19 +84,28 @@ async function run(
     });
     await api.isReady;
     logger.info('API connection is ready, begin payout check.');
+
+    const keyring = new Keyring({ type: 'sr25519' });
+    const keypair = keyring.addFromUri(seedPhrase);
+    let account = await api.query.system.account(keypair.address);
+    let nonce = account.nonce.toBigInt();
+
     let activeEraIndex = (await api.query.staking.activeEra()).unwrap().index.toNumber();
     let unclaimedPayoutCount = 0;
     for (let stashAddress of stashAddresses) {
         unclaimedPayoutCount = 0;
-        for (let eraIndex = activeEraIndex - eraDepth; eraIndex < activeEraIndex; eraIndex++) {
+        for (let eraIndex = Math.max(activeEraIndex - eraDepth, 0); eraIndex < activeEraIndex; eraIndex++) {
             const args = {
                 api,
-                seedPhrase,
+                keypair,
                 stashAddress,
+                nonce,
                 eraIndex,
                 listOnly,
             } as ServiceArgs;
-            if (await claimPayout(args)) {
+            const newNonce = await claimPayout(args);
+            if (newNonce) {
+                nonce = newNonce;
                 unclaimedPayoutCount++;
             }
         }
