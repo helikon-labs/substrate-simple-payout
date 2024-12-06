@@ -25,11 +25,11 @@ async function getPayoutPagesToClaimForAddressForEra(
     api: ApiPromise,
     stashAddress: string,
     eraIndex: number,
-): Promise<Array<number>> {
+): Promise<Array<number> | undefined> {
     const overview = await api.query.staking.erasStakersOverview(eraIndex, stashAddress);
     if (overview.isNone) {
         // was not in the active set
-        return [];
+        return undefined;
     }
     let pageCount = overview.unwrap().pageCount.toNumber();
     let pages = [...Array(pageCount).keys()];
@@ -39,10 +39,14 @@ async function getPayoutPagesToClaimForAddressForEra(
         },
     );
     let pagesToClaim = [];
-    for (let i = 0; i < pages.length; i++) {
-        let pageIndex = pages[i];
-        if (claimedPages.indexOf(pageIndex) < 0) {
-            pagesToClaim.push(pageIndex);
+    if (pages.length == 0 && claimedPages.length == 0) {
+        pagesToClaim.push(0);
+    } else {
+        for (let i = 0; i < pages.length; i++) {
+            let pageIndex = pages[i];
+            if (claimedPages.indexOf(pageIndex) < 0) {
+                pagesToClaim.push(pageIndex);
+            }
         }
     }
     return pagesToClaim;
@@ -57,18 +61,18 @@ export async function claimPayout({
     listOnly,
 }: ServiceArgs): Promise<bigint | undefined> {
     const pagesToClaim = await getPayoutPagesToClaimForAddressForEra(api, stashAddress, eraIndex);
-    if (pagesToClaim.length == 0) {
-        logger.info(`No payout to claim for ${stashAddress} in era ${eraIndex}`);
+    if (pagesToClaim == undefined) {
+        logger.info(`${stashAddress} was not active in era ${eraIndex}.`);
         return undefined;
     }
     if (listOnly) {
         logger.info(
-            `${stashAddress} has ${pagesToClaim.length} pages of unclaimed payouts for era ${eraIndex}.`,
+            `${stashAddress} has ${pagesToClaim.length} page(s) of unclaimed payouts for era ${eraIndex}.`,
         );
         return undefined;
     }
     logger.info(
-        `Will claim ${pagesToClaim.length} pages of payout for ${stashAddress} for era ${eraIndex}.`,
+        `Will claim ${pagesToClaim.length} page(s) of payout for ${stashAddress} for era ${eraIndex}.`,
     );
     cryptoWaitReady();
     
